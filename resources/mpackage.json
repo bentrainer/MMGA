@@ -1,0 +1,19 @@
+{
+    "name": "MMGA",
+    "version": "1.0.0",
+    "id": "6e0e2c3e-8b9d-4753-ad3d-7e58bee286ef",
+    "formerNames": [],
+    "displayName": "MMGA",
+    "summary": "",
+    "description": "Make Matlab Great Again",
+    "provider": {
+        "name": "",
+        "organization": "",
+        "email": "",
+        "url": ""
+    },
+    "folders": [],
+    "dependencies": [],
+    "releaseCompatibility": ">=21.0.0",
+    "schemaVersion": "1.0.0"
+}
