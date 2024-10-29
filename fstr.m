@@ -42,10 +42,15 @@ function val = fstr(varargin)
             end
 
             try
-                obj = evalin("caller", var_name);
+                if isvarname(var_name)
+                    obj = evalin("caller", var_name);
+                else
+                    obj = eval(var_name);
+                    disp(obj);
+                end
                 str = obj_to_str(obj, suffix);
             catch ME
-                warning("fstr: failed to eval '%s' with error '%s'", var_name, general_obj_to_str(ME));
+                warning("fstr: failed to eval ""%s"" with error ""%s""", var_name, ME.message);
                 str = "";
             end
 
@@ -64,8 +69,25 @@ function val = fstr(varargin)
 end
 
 
-function val = general_obj_to_str(obj)
+function val = disp_str(obj)
     val = strip(formattedDisplayText(obj, LineSpacing="compact", SuppressMarkup=true, UseTrueFalseForLogical=true));
+end
+
+
+function val = general_obj_to_str(obj)
+    if isscalar(obj) && (ismethod(obj, "disp") || ~isobject(obj))
+        % use disp output as the result only if:
+        % the object overload the disp function
+        % OR
+        % obj is not an object
+        val = disp_str(obj);
+    else
+        if isscalar(obj)
+            val = sprintf("<%s object>", class(obj));
+        else
+            val = sprintf("[<%s object>...]", class(obj));
+        end
+    end
 end
 
 
@@ -83,13 +105,95 @@ end
 
 function val = obj_to_str(obj, format_operator)
 
+    val = "";
+
     if format_operator~=""
         val = sprintf(format_operator, obj);
     else
 
-        % TODO: check class to dispatch
-        val = general_obj_to_str(obj);
+        format_flag = false;
+        for class_name = ["numeric", "logical", "char", "string", "struct", "cell", "function_handle"]
+            if eval(sprintf("is%s(obj)", class_name))
+                fprintf("is%s(obj)\n", class_name);
+                val = eval(sprintf("format_%s(obj)", class_name));
+                format_flag = true;
+                break
+            end
+        end
+
+        if ~format_flag
+            val = general_obj_to_str(obj);
+        end
 
     end
 
+end
+
+
+function val = isfunction_handle(obj)
+    val = isa(obj, "function_handle");
+end
+
+
+function n = max_disp_obj_len()
+    n = 10;
+end
+
+
+function val = format_numeric(obj)
+
+    if isscalar(obj)
+        val = disp_str(obj);
+    else
+        val = disp_str(obj);
+    end
+
+end
+
+function val = format_logical(obj)
+    if isscalar(obj)
+        val = disp_str(obj);
+    else
+        val = disp_str(obj);
+    end
+end
+
+function val = format_string(obj)
+    if isscalar(obj)
+        val = sprintf("""%s\""", obj);
+    else
+        if isvector(obj)
+            val = "[""" + join(obj, """, """) + """]";
+        else
+            val = disp_str(obj);
+        end
+    end
+end
+
+function val = format_char(obj)
+    val = "'" + sprintf("%c", obj) + "'";
+end
+
+function val = format_struct(obj)
+    if isscalar(obj)
+        val = disp_str(obj);
+    else
+        val = disp_str(obj);
+    end
+end
+
+function val = format_cell(obj)
+    if isscalar(obj)
+        val = disp_str(obj);
+    else
+        val = disp_str(obj);
+    end
+end
+
+function val = format_function_handle(obj)
+    if isscalar(obj)
+        val = sprintf("<function handle of %s>", general_obj_to_str(obj));
+    else
+        val = sprintf("[<function handle of %s>...]", general_obj_to_str(obj(1)));
+    end
 end
