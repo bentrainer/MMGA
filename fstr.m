@@ -1,4 +1,13 @@
 function val = fstr(varargin)
+    % convert a Python like f-string into string,
+    % accept multiple f-string input.
+    % Example: A=rand(2, 3); fstr("A={A}")
+
+    % Internal functions:
+    % disp_str: wrapped formattedDisplayText, convert everything into string
+    % format_ndim_obj: convert a n-dim matrix into string
+    % elem_to_str: convert a scalar into string
+
     val = "";
     fstr_regex_pattern = "((?<!\\{)(?<={)).*?((?!\\})(?=}))";
 
