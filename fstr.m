@@ -45,24 +45,28 @@ function val = fstr(varargin)
             end
             pos = r+2;
 
+            % parse the f-expr like {varname} {varname:.3f}
             [var_name, suffix] = parse_f_expr(string(fchar(l:r)));
             if suffix~=""
+                % eg. ".3f" -> "%.3f"
                 suffix = "%" + suffix;
             end
 
-            % try
+            try
                 if isvarname(var_name)
+                    % evaluate the variable in caller's workspace
                     obj = evalin("caller", var_name);
                 else
+                    % for security issue, use str2num instead
                     % obj = eval(var_name);
                     obj = str2num(var_name, Evaluation="restricted"); %#ok<*ST2NM>
                 end
                 % str = obj_to_str(obj, suffix);
                 str = format_ndim_obj(obj, suffix);
-            % catch ME
-            %     warning("fstr: failed to eval ""%s"" with error ""%s"" at ""%s""", var_name, ME.message, disp_str(ME.stack));
-            %     str = "";
-            % end
+            catch ME
+                warning("fstr: failed to eval %s with error:\n  %s\n%s", var_name, ME.message, stack_str(ME.stack));
+                str = "";
+            end
 
             val = val + str;
 
@@ -115,11 +119,7 @@ function val = elem_to_str(v, format_operator)
     elseif isnumeric(v)
         val = disp_str(v);
     elseif islogical(v)
-        if v
-            val = "true";
-        else
-            val = "false";
-        end
+        val = disp_str(v);
     elseif ischar(v)
         val = sprintf("'%c'", v);
     elseif isstring(v)
@@ -259,4 +259,12 @@ function A_sub = index_first_dim(A, k)
     S.subs{1} = k;
 
     A_sub = subsref(A, S);
+end
+
+function val = stack_str(stack)
+    val = "";
+    for k = 1:length(stack)
+        sk = stack(k);
+        val = val + sprintf("  > %s > %s (line %d)\n", sk.file, sk.name, sk.line);
+    end
 end
