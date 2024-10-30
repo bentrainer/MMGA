@@ -26,3 +26,10 @@ To make programming more easy in MATLAB, I want to implement a series of functio
 
 Currently I just have a naïve thinking of this, let's see if it could be done.
 
+## Install
+
+* Recommend to use `mpminstall` if you are using `MATLAB>=R2024b`.
+* Or use `addpath(...)` / Copy the file you need to the destination folder.
+
+## Usage
+* [fstr](docs/fstr.md)
