@@ -179,6 +179,12 @@ function val = format_ndim_obj(A, format_operator, depth)
     if isscalar(A)
         val = elem_to_str(A, format_operator);
     elseif isvector(A)
+
+        if ischar(A)
+            val = sprintf("'%s'", string(A));
+            return
+        end
+
         len_A = length(A);
         val = "[";
         if len_A<=max_disp_obj_len
@@ -196,7 +202,6 @@ function val = format_ndim_obj(A, format_operator, depth)
         end
         val = val + elem_to_str(A(end), format_operator) + "]";
     else
-        disp(nd_size);
         val = "[";
         if nd_size(end)<=max_disp_obj_len
             for k = 1:(nd_size(end)-1)
