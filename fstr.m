@@ -16,7 +16,7 @@ function val = fstr(varargin)
                 warning("fstr: expected string but got %s at varargin{%d}", class(fchar), k);
             end
 
-            val = val + general_obj_to_str(fchar);
+            val = val + disp_str(fchar);
 
             continue
         end
@@ -32,7 +32,7 @@ function val = fstr(varargin)
             r = end_idx(idx);
 
             if l-1>pos
-                val = val + string(fchar(pos:l-2));
+                val = val + safe_sprintf(fchar(pos:l-2));
             end
             pos = r+2;
 
@@ -41,18 +41,19 @@ function val = fstr(varargin)
                 suffix = "%" + suffix;
             end
 
-            try
+            % try
                 if isvarname(var_name)
                     obj = evalin("caller", var_name);
                 else
-                    obj = eval(var_name);
-                    disp(obj);
+                    % obj = eval(var_name);
+                    obj = str2num(var_name, Evaluation="restricted"); %#ok<*ST2NM>
                 end
-                str = obj_to_str(obj, suffix);
-            catch ME
-                warning("fstr: failed to eval ""%s"" with error ""%s""", var_name, ME.message);
-                str = "";
-            end
+                % str = obj_to_str(obj, suffix);
+                str = format_ndim_obj(obj, suffix);
+            % catch ME
+            %     warning("fstr: failed to eval ""%s"" with error ""%s"" at ""%s""", var_name, ME.message, disp_str(ME.stack));
+            %     str = "";
+            % end
 
             val = val + str;
 
@@ -60,34 +61,24 @@ function val = fstr(varargin)
 
         % handle the content after the last f_expr
         if pos<=len
-            val = val + string(fchar(pos:len));
+            val = val + safe_sprintf(fchar(pos:len));
         end
 
 
     end
 
+end
+
+
+function val = safe_sprintf(str)
+    val = replace(str, "\{", "{");
+    val = replace(val, "\}", "}");
+    val = sprintf(val);
 end
 
 
 function val = disp_str(obj)
     val = strip(formattedDisplayText(obj, LineSpacing="compact", SuppressMarkup=true, UseTrueFalseForLogical=true));
-end
-
-
-function val = general_obj_to_str(obj)
-    if isscalar(obj) && (ismethod(obj, "disp") || ~isobject(obj))
-        % use disp output as the result only if:
-        % the object overload the disp function
-        % OR
-        % obj is not an object
-        val = disp_str(obj);
-    else
-        if isscalar(obj)
-            val = sprintf("<%s object>", class(obj));
-        else
-            val = sprintf("[<%s object>...]", class(obj));
-        end
-    end
 end
 
 
@@ -103,97 +94,146 @@ function [var_name, suffix] = parse_f_expr(f_expr)
 end
 
 
-function val = obj_to_str(obj, format_operator)
+function val = elem_to_str(v, format_operator)
 
-    val = "";
+    arguments
+        v
+        format_operator string = ""
+    end
 
     if format_operator~=""
-        val = sprintf(format_operator, obj);
+        val = sprintf(format_operator, v);
+    elseif isnumeric(v)
+        val = disp_str(v);
+    elseif islogical(v)
+        if v
+            val = "true";
+        else
+            val = "false";
+        end
+    elseif ischar(v)
+        val = sprintf("'%c'", v);
+    elseif isstring(v)
+        val = """" + v + """";
+    elseif isstruct(v)
+        val = disp_str(v);
+    elseif iscell(v)
+        val = disp_str(v);
+    elseif isa(v, "function_handle")
+        val = sprintf("<function handle of %s>", disp_str(v));
+    elseif ismethod(obj, "disp") || ~isobject(obj)
+        val = disp_str(v);
     else
+        val = sprintf("<%s object>", class(obj));
+    end
 
-        format_flag = false;
-        for class_name = ["numeric", "logical", "char", "string", "struct", "cell", "function_handle"]
-            if eval(sprintf("is%s(obj)", class_name))
-                fprintf("is%s(obj)\n", class_name);
-                val = eval(sprintf("format_%s(obj)", class_name));
-                format_flag = true;
-                break
+end
+
+
+function n = max_disp_obj_len(action, new_n)
+    arguments
+        action string = "GET"
+        new_n         = 20
+    end
+    persistent n_config;
+    if action~="GET" || isempty(n_config)
+        n_config = new_n;
+    end
+    n = n_config;
+end
+function n = truncate_obj_len(action, new_n)
+    arguments
+        action string = "GET"
+        new_n         = 5
+    end
+    persistent n_config;
+    if action~="GET" || isempty(n_config)
+        n_config = new_n;
+    end
+    n = n_config;
+end
+
+
+function val = format_ndim_obj(A, format_operator, depth)
+
+    arguments
+        A
+        format_operator string = ""
+        depth                  = 1
+    end
+
+    margin = pad("", depth);
+
+
+    if isscalar(A)
+        val = elem_to_str(A, format_operator);
+    elseif isvector(A)
+        len_A = length(A);
+        val = "[";
+        if len_A<=max_disp_obj_len
+            for k = 1:(length(A)-1)
+                val = val + elem_to_str(A(k), format_operator) + ", ";
+            end
+        else
+            for k = 1:truncate_obj_len
+                val = val + elem_to_str(A(k), format_operator) + ", ";
+            end
+            val = val + "..., ";
+            for k = (len_A-truncate_obj_len+1):(len_A-1)
+                val = val + elem_to_str(A(k), format_operator) + ", ";
             end
         end
-
-        if ~format_flag
-            val = general_obj_to_str(obj);
-        end
-
-    end
-
-end
-
-
-function val = isfunction_handle(obj)
-    val = isa(obj, "function_handle");
-end
-
-
-function n = max_disp_obj_len()
-    n = 10;
-end
-
-
-function val = format_numeric(obj)
-
-    if isscalar(obj)
-        val = disp_str(obj);
+        val = val + elem_to_str(A(end), format_operator) + "]";
     else
-        val = disp_str(obj);
-    end
-
-end
-
-function val = format_logical(obj)
-    if isscalar(obj)
-        val = disp_str(obj);
-    else
-        val = disp_str(obj);
-    end
-end
-
-function val = format_string(obj)
-    if isscalar(obj)
-        val = sprintf("""%s\""", obj);
-    else
-        if isvector(obj)
-            val = "[""" + join(obj, """, """) + """]";
+        nd_size = size(A);
+        disp(nd_size);
+        val = "[";
+        if nd_size(end)<=max_disp_obj_len
+            for k = 1:(nd_size(end)-1)
+                if k~=1
+                    val = val + margin;
+                end
+                val = val + format_ndim_obj( ...
+                    index_last_dim(A, k), ...
+                    format_operator, ...
+                    depth + 1 ...
+                ) + sprintf(",\n");
+            end
         else
-            val = disp_str(obj);
+            for k = 1:truncate_obj_len
+                if k~=1
+                    val = val + margin;
+                end
+                val = val + format_ndim_obj( ...
+                    index_last_dim(A, k), ...
+                    format_operator, ...
+                    depth + 1 ...
+                ) + sprintf(",\n");
+            end
+            val = val + margin + sprintf("...,\n");
+            % val = val + margin + sprintf("(%d lines)...,\n", nd_size(end) - 2*truncate_obj_len);
+            for k = (nd_size(end)-truncate_obj_len+1):(nd_size(end)-1)
+                val = val + margin + ...
+                    format_ndim_obj( ...
+                        index_last_dim(A, k), ...
+                        format_operator, ...
+                        depth + 1 ...
+                    ) + sprintf(",\n");
+            end
         end
+        val = val + margin + format_ndim_obj( ...
+            index_last_dim(A, nd_size(end)), ...
+            format_operator, ...
+            depth + 1 ...
+        ) + "]";
     end
+
 end
 
-function val = format_char(obj)
-    val = "'" + sprintf("%c", obj) + "'";
-end
+function A_sub = index_last_dim(A, k)
+    S = struct('type', '()', 'subs', '');
+    S.subs = repmat({':'}, 1, ndims(A));
+    S.subs{end} = k;
 
-function val = format_struct(obj)
-    if isscalar(obj)
-        val = disp_str(obj);
-    else
-        val = disp_str(obj);
-    end
-end
-
-function val = format_cell(obj)
-    if isscalar(obj)
-        val = disp_str(obj);
-    else
-        val = disp_str(obj);
-    end
-end
-
-function val = format_function_handle(obj)
-    if isscalar(obj)
-        val = sprintf("<function handle of %s>", general_obj_to_str(obj));
-    else
-        val = sprintf("[<function handle of %s>...]", general_obj_to_str(obj(1)));
-    end
+    A_sub = subsref(A, S);
 end
