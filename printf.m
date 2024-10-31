@@ -11,17 +11,18 @@ function printf(varargin, opts)
     end
 
     f_content = sprintf("%s{obj}", opts.sep);
+    file_id   = opts.file;
 
     for k = 1:nargin
         obj = varargin{k}; %#ok<NASGU>
 
         if k==1
-            fprintf(opts.file, fstr("{obj}"));
+            fprintf(file_id, fstr("{obj}"));
         else
-            fprintf(opts.file, fstr(f_content));
+            fprintf(file_id, fstr(f_content));
         end
     end
 
-    fprintf(opts.file, opts.ends);
+    fprintf(file_id, opts.ends);
 
 end
