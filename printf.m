@@ -1,5 +1,5 @@
 function printf(varargin, opts)
-    % printf(varargin, sep=" ", end=newline(), file=1) % 1 stands for stdout
+    % printf(varargin, sep=" ", ends=newline(), file=1) % 1 stands for stdout
 
     arguments (Repeating)
         varargin
