@@ -7,7 +7,7 @@ C_n = 'chars';
 S_n = ["a", "bb", "ccc"];
 foo = @fstr;
 
-disp(fstr("A_n = \n{A_n}"));
+disp(fstr("A_n = \n{A_n:.4f}"));
 disp(fstr("B_n = {B_n}"));
 disp(fstr("C_n = {C_n}"));
 disp(fstr("S_n = {S_n}"));
