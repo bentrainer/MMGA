@@ -119,11 +119,11 @@ function val = elem_to_str(v, format_operator)
     elseif isnumeric(v)
         val = disp_str(v);
     elseif islogical(v)
-        val = disp_str(v);
+        val = ternary(v, "true", "false");
     elseif ischar(v)
         val = sprintf("'%c'", v);
     elseif isstring(v)
-        val = """" + v + """";
+        val = sprintf("""%s""", v);
     elseif isstruct(v)
         val = disp_str(v);
     elseif iscell(v)
@@ -266,5 +266,13 @@ function val = stack_str(stack)
     for k = 1:length(stack)
         sk = stack(k);
         val = val + sprintf("  > %s > %s (line %d)\n", sk.file, sk.name, sk.line);
+    end
+end
+
+function val = ternary(cond, val_true, val_false)
+    if logical(cond)
+        val = val_true;
+    else
+        val = val_false;
     end
 end
