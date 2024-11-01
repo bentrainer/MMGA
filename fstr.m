@@ -122,7 +122,7 @@ function val = elem_to_str(v, format_operator)
         val = disp_str(v);
     elseif isa(v, "function_handle")
         val = sprintf("<function handle of %s>", disp_str(v));
-    elseif ismethod(obj, "disp") || ~isobject(obj)
+    elseif ismethod(v, "disp") || ~isobject(v)
         val = disp_str(v);
     else
         val = sprintf("<%s object>", class(obj));
