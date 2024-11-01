@@ -53,18 +53,10 @@ function val = fstr(varargin)
             end
 
             try
-                if isvarname(var_name)
-                    % evaluate the variable in caller's workspace
-                    obj = evalin("caller", var_name);
-                else
-                    % TODO: make evaluation safer?
-                    obj = evalin("caller", var_name);
-                    % obj = str2num(var_name, Evaluation="restricted"); %#ok<*ST2NM>
-                end
-                % str = obj_to_str(obj, suffix);
+                obj = evalin("caller", var_name);
                 str = format_ndim_obj(obj, suffix);
             catch ME
-                warning("fstr: failed to eval %s with error:\n  %s\n%s", var_name, ME.message, stack_str(ME.stack));
+                warning("fstr: failed to eval ""%s"" with error:\n  %s\n%s", var_name, ME.message, stack_str(ME.stack));
                 str = "";
             end
 
