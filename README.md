@@ -33,3 +33,5 @@ Currently I just have a naïve thinking of this, let's see if it could be done.
 
 ## Usage
 * [fstr](docs/fstr.md)
+* printf: `printf(varargin, sep=" ", ends=newline(), file=fileID)` % all key-value pairs are optional
+* ternary: `ternary(cond, a, b)` % equals to `cond?a:b` in C
