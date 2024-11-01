@@ -125,7 +125,7 @@ function val = elem_to_str(v, format_operator)
     elseif ismethod(v, "disp") || ~isobject(v)
         val = disp_str(v);
     else
-        val = sprintf("<%s object>", class(obj));
+        val = sprintf("<%s object>", class(v));
     end
 
 end
