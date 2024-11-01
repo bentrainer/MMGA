@@ -25,3 +25,5 @@ disp(fstr("foo = {foo}, and \{foo\} will be escaped."));
 
 ### Notice
 The matrix is stored in column-major order by default in MATLAB, however it is difficult to display it in that way. fstr() will display the matrix looks like row-major, just to make it more human-readable.
+
+fstr is implemented in pure MATLAB, so the performance is not guaranteed, try not to use fstr in performance critical path.
