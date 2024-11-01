@@ -57,9 +57,9 @@ function val = fstr(varargin)
                     % evaluate the variable in caller's workspace
                     obj = evalin("caller", var_name);
                 else
-                    % for security issue, use str2num instead
-                    % obj = eval(var_name);
-                    obj = str2num(var_name, Evaluation="restricted"); %#ok<*ST2NM>
+                    % TODO: make evaluation safer?
+                    obj = evalin("caller", var_name);
+                    % obj = str2num(var_name, Evaluation="restricted"); %#ok<*ST2NM>
                 end
                 % str = obj_to_str(obj, suffix);
                 str = format_ndim_obj(obj, suffix);
