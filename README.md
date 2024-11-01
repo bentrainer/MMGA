@@ -5,7 +5,7 @@ Make MATLAB Great Again
 
 MATLAB is fast in matrix operation, however writing MATLAB code is not as free as Python, makes it hard to write bigger project while maintaining good readability for debug / update.
 
-For example, there's no built-in logger package in MATLAB, and if anyone want to print out some log information, it has to be achieved by using `fprintf`, `disp` or similar functions. However, `fprintf` has limited formatting operators, rather than Python you could do `"{}".format(any_obj)` or simply use f-string like `f"{any_obj}"`. If you choose `disp`, then you will find it only accepts single input, to output multiple variables together, it will be like: 
+For example, there's no built-in logger package in MATLAB, and if anyone want to print out some log information, it has to be achieved by using `fprintf`, `disp` or similar functions. However, `fprintf` has limited formatting operators, rather than Python you could do `"{}".format(any_obj)` or simply use f-string like `f"{any_obj}"`. If you choose `disp`, then you will find it only accepts single input, to output multiple variables together, it will be like:
 
 ```matlab
 disp({1, 2, 3, "four", [5,6]})
