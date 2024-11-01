@@ -11,7 +11,7 @@ disp(fstr("A_n = \n{A_n:.4f}"));
 disp(fstr("B_n = {B_n}"));
 disp(fstr("C_n = {C_n}"));
 disp(fstr("S_n = {S_n}"));
-disp(fstr("foo = {foo}, and \{foo\} will be escaped."));
+disp(fstr("foo = {foo}, and {{foo}} will be escaped."));
 
 % an example output:
 % A_n =

@@ -9,7 +9,7 @@ function val = fstr(varargin)
     % elem_to_str: convert a scalar into string
 
     val = "";
-    fstr_regex_pattern = "((?<!\\{)(?<={)).*?((?!\\})(?=}))";
+    fstr_regex_pattern = "(?<!{{)(?<={)([^{}]+)(?=})(?!}})";
 
     for k = 1:nargin
         fchar = varargin{k};
@@ -76,8 +76,8 @@ end
 
 
 function val = safe_sprintf(str)
-    val = replace(str, "\{", "{");
-    val = replace(val, "\}", "}");
+    val = replace(str, "{{", "{");
+    val = replace(val, "}}", "}");
     val = sprintf(val);
 end
 
