@@ -9,7 +9,7 @@ function val = fstr(varargin)
     % elem_to_str: convert a scalar into string
 
     val = "";
-    fstr_regex_pattern = "(?<!{{)(?<={)([^{}]+)(?=})(?!}})";
+    % fstr_regex_pattern = "(?<!{{)(?<={)([^{}]+)(?=})(?!}})";
 
     for k = 1:nargin
         fchar = varargin{k};
@@ -34,7 +34,8 @@ function val = fstr(varargin)
         len = length(fchar);
         pos = 1;
 
-        [start_idx, end_idx] = regexp(fchar, fstr_regex_pattern);
+        % [start_idx, end_idx] = regexp(fchar, fstr_regex_pattern);
+        [start_idx, end_idx] = find_fstr_pattern(fchar);
 
         for idx = 1:length(start_idx)
             l = start_idx(idx);
@@ -52,12 +53,16 @@ function val = fstr(varargin)
                 suffix = "%" + suffix;
             end
 
-            try
-                obj = evalin("caller", var_name);
-                str = format_ndim_obj(obj, suffix);
-            catch ME
-                warning("fstr: failed to eval ""%s"" with error:\n  %s\n%s", var_name, ME.message, stack_str(ME.stack));
+            if var_name==""
                 str = "";
+            else
+                try
+                    obj = evalin("caller", var_name);
+                    str = format_ndim_obj(obj, suffix);
+                catch ME
+                    warning("fstr: failed to eval ""%s"" with error:\n  %s\n%s", var_name, ME.message, stack_str(ME.stack));
+                    str = "";
+                end
             end
 
             val = val + str;
@@ -84,6 +89,58 @@ end
 
 function val = disp_str(obj)
     val = strip(formattedDisplayText(obj, LineSpacing="compact", SuppressMarkup=true, UseTrueFalseForLogical=true));
+end
+
+
+function [start_idx, end_idx] = find_fstr_pattern(fchar)
+    len = length(fchar);
+    pos = 0;
+    depth = 0;
+
+    start_idx = NaN(1, floor(len/2));
+    end_idx = NaN(1, floor(len/2));
+
+    if len<2
+        return
+    end
+
+    % last_char = ' ';
+    curr_char = ' ';
+    next_char = fchar(1);
+
+    for k = 1:len-1
+        last_char = curr_char;
+        curr_char = next_char;
+        next_char = fchar(k+1);
+
+        if curr_char=='{'
+            depth = ternary(next_char=='{', depth+len, depth+1);
+            if depth==1
+                pos = pos + 1;
+                start_idx(pos) = k+1;
+            end
+        elseif curr_char=='}'
+            depth = ternary(last_char=='}', depth-len, depth-1);
+            if (depth<=0 && pos>0 && isnan(end_idx(pos)))
+                end_idx(pos) = k-1;
+            end
+        end
+
+        depth = ternary(depth<0, 0, depth);
+        % fprintf("%d ", depth);
+    end
+
+    if next_char=='}'
+        depth = ternary(curr_char=='}', depth-len, depth-1);
+        if depth<=0 && pos>0 && isnan(end_idx(pos))
+            end_idx(pos) = len-1;
+        end
+    end
+
+    idx = ~isnan(end_idx);
+    start_idx = start_idx(idx);
+    end_idx = end_idx(idx);
+
 end
 
 
@@ -168,7 +225,9 @@ function val = format_ndim_obj(A, format_operator, depth)
     nd_size = flip(size(A));
 
 
-    if isscalar(A)
+    if isempty(A)
+        val = sprintf("<empty %s>", class(A));
+    elseif isscalar(A)
         val = elem_to_str(A, format_operator);
     elseif isvector(A)
 
