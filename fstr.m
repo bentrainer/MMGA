@@ -137,7 +137,12 @@ function [start_idx, end_idx] = find_fstr_pattern(fchar)
         end
     end
 
+    % filter out NaN
     idx = ~isnan(end_idx);
+    start_idx = start_idx(idx);
+    end_idx = end_idx(idx);
+
+    idx = ~isnan(start_idx);
     start_idx = start_idx(idx);
     end_idx = end_idx(idx);
 
