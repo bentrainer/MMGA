@@ -17,12 +17,12 @@ function printf(varargin, opts)
         obj = varargin{k}; %#ok<NASGU>
 
         if k==1
-            fprintf(file_id, fstr("{obj}"));
+            fprintf(file_id, "%s", fstr("{obj}"));
         else
-            fprintf(file_id, fstr(f_content));
+            fprintf(file_id, "%s", fstr(f_content));
         end
     end
 
-    fprintf(file_id, opts.ends);
+    fprintf(file_id, "%s", opts.ends);
 
 end
