@@ -161,11 +161,12 @@ function [var_name, suffix] = parse_f_expr(f_expr)
 end
 
 
-function val = elem_to_str(v, format_operator)
+function val = elem_to_str(v, format_operator, opts)
 
     arguments
         v
         format_operator string = ""
+        opts.no_double_quote logical = false
     end
 
     if format_operator~=""
@@ -177,7 +178,7 @@ function val = elem_to_str(v, format_operator)
     elseif ischar(v)
         val = sprintf("'%c'", v);
     elseif isstring(v)
-        val = sprintf("""%s""", v);
+        val = sprintf(ternary(opts.no_double_quote, "%s", """%s"""), v);
     elseif isstruct(v)
         val = disp_str(v);
     elseif iscell(v)
@@ -233,7 +234,7 @@ function val = format_ndim_obj(A, format_operator, depth)
     if isempty(A)
         val = sprintf("<empty %s>", class(A));
     elseif isscalar(A)
-        val = elem_to_str(A, format_operator);
+        val = elem_to_str(A, format_operator, no_double_quote=true);
     elseif isvector(A)
 
         if ischar(A)
