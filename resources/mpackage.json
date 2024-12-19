@@ -14,6 +14,6 @@
     },
     "folders": [],
     "dependencies": [],
-    "releaseCompatibility": ">=21.0.0",
+    "releaseCompatibility": ">=R2022b",
     "schemaVersion": "1.0.0"
 }
