@@ -10,6 +10,7 @@ function prettyplot(varargin, opts)
         opts.masks = ["CurrentAxes", "Parent"]
         opts.debug logical = false
         opts.auto_update logical = true
+        opts.white_background logical = true
     end
 
 
@@ -34,6 +35,9 @@ function prettyplot(varargin, opts)
         end
     end
 
+    if opts.white_background
+        fig.Color = "White";
+    end
 
     if isnan(opts.config)
         config = get_default_config();
@@ -211,6 +215,7 @@ end
 
 function config = get_default_config()
     config = dict( ...
+        "Box", "on", ...
         "FontName", "Times New Roman", ...
         "FontSize", 14, ...
         "Legend.Location", "best", ...
