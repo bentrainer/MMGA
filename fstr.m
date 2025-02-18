@@ -97,12 +97,12 @@ function [start_idx, end_idx] = find_fstr_pattern(fchar)
     pos = 0;
     depth = 0;
 
-    start_idx = NaN(1, floor(len/2));
-    end_idx = NaN(1, floor(len/2));
-
     if len<2
         return
     end
+
+    start_idx = NaN(1, floor(len/2));
+    end_idx = NaN(1, floor(len/2));
 
     % last_char = ' ';
     curr_char = ' ';
