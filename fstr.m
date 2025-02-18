@@ -3,6 +3,9 @@ function val = fstr(varargin)
     % accept multiple f-string input.
     % Example: A=rand(2, 3); fstr("A={A}")
 
+    % Prerequisite:
+    % - StringBuilder.m (TODO)
+
     % Internal functions:
     % disp_str: wrapped formattedDisplayText, convert everything into string
     % format_ndim_obj: convert a n-dim matrix into string
