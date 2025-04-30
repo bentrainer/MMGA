@@ -9,8 +9,8 @@ function prettyplot(varargin, opts)
         opts.strict logical = false
         opts.masks = ["CurrentAxes", "Parent"]
         opts.debug logical = false
-        opts.auto_update logical = true
-        opts.white_background logical = true
+        opts.auto_update logical = false
+        opts.white_background logical = false
     end
 
 
