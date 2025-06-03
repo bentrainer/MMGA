@@ -11,6 +11,7 @@ function prettyplot(varargin, opts)
         opts.debug logical = false
         opts.auto_update logical = false
         opts.white_background logical = false
+        opts.MAX_RECUR_LEVEL = 10
     end
 
 
@@ -76,15 +77,19 @@ function prettyplot(varargin, opts)
     );
 
 
-    % make sure the TickLabels are correct after changing the font size
+    % change font size may result in TickLabels incorrect,
+    % call drawnow() to make sure the TickLabels are correctly
+    % updated after changing the font size.
     for k = 1:2
         recursive_set( ...
             fig, config, ...
             prefix=prefix, ...
             masks=opts.masks, ...
             stack=obj_name, ...
-            debug=opts.debug ...
+            debug=opts.debug, ...
+            MAX_RECUR_LEVEL=opts.MAX_RECUR_LEVEL ...
         );
+        drawnow();
     end
 
     function size_changed_callback_func(fig, event)
@@ -124,10 +129,10 @@ function recursive_set(obj, config, opts)
         opts.masks = ["CurrentAxes", "Parent"]
         opts.stack = "obj"
         opts.debug = false
+        opts.MAX_RECUR_LEVEL = 10
     end
 
-
-    if ~isobject(obj) || isstring(obj)
+    if ~isobject(obj) || isstring(obj) || opts.level > opts.MAX_RECUR_LEVEL
         return
     end
 
