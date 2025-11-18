@@ -36,9 +36,10 @@ classdef dict < handle
             self.update(key, value);
         end
 
-        function A = get(self, key)
+        function A = get(self, key, default)
             % GET Get the value using the given key,
-            % if the key is not in the dict, returns noting
+            % if the key is not in the dict, returns default,
+            % if default not given, throws an error.
             key = {key};
 
             if isKey(self.mdict, key)
@@ -46,6 +47,13 @@ classdef dict < handle
                 if iscell(A)
                     A = A{1};
                 end
+            elseif exist("default", "var")
+                A = default;
+            else
+                error(...
+                    "key '%s' does not exist in the dict", ...
+                    strip(formattedDisplayText(key{1}, LineSpacing="compact", SuppressMarkup=true, UseTrueFalseForLogical=true)) ...
+                );
             end
         end
 
