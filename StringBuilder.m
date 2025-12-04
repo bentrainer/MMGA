@@ -100,6 +100,21 @@ classdef StringBuilder < handle
         function s = to_str(self)
             s = string(self.buffer(1:self.len));
         end
+        function s = string(self)
+            s = self.to_str();
+        end
+
+        % overload sb + str
+        function sb = plus(a, b)
+            if isstring(a) || ischar(a)
+                tmp = a;
+                a = b;
+                b = tmp;
+            end
+
+            a.append_single(b);
+            sb = a;
+        end
 
     end
 
