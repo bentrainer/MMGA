@@ -1,7 +1,7 @@
 function pass = test_fstr(verbose)
 
     arguments
-        verbose logical = false
+        verbose logical = true
     end
 
     pass = false;
@@ -16,7 +16,8 @@ function pass = test_fstr(verbose)
         "{{{", "{{", ...
         "}}}", "}}", ...
         "{ { {", "{ { {", ...
-        "{ { { } } }", "{0×0 cell}" ...
+        "{ { { } } }", "{0×0 cell}", ...
+        "no variable", "no variable" ...
     );
 
     keys = data.keys();
@@ -26,7 +27,7 @@ function pass = test_fstr(verbose)
         dval = data(expr);
         val  = fstr(expr);
 
-        if verbose; fprintf("""%s"" ... ", expr); end
+        if verbose; fprintf("""%s"" -> ""%s"" ... ", expr, val); end
 
         if val~=dval
             fprintf("fstr(""%s"") gives ""%s"" rather than ""%s""\n", expr, val, dval);
