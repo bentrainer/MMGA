@@ -37,5 +37,9 @@ function pass = test_fstr(verbose)
         if verbose; fprintf("PASSED\n"); end
     end
 
+    % bigr = rand(1000, 1000); %#ok<NASGU>
+    % fstr("{bigr}{bigr}{bigr}{bigr}{bigr}{bigr}{bigr}{bigr}{bigr}{bigr}{bigr}{bigr}" + ...
+    %     "{bigr}{bigr}{bigr}{bigr}{bigr}{bigr}{bigr}{bigr}{bigr}{bigr}{bigr}{bigr}{bigr}");
+
     pass = true;
 end

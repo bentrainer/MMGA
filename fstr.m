@@ -3,16 +3,14 @@ function val = fstr(varargin)
     % accept multiple f-string input.
     % Example: A=rand(2, 3); fstr("A={A}")
 
-    % Prerequisite:
-    % - StringBuilder.m (TODO)
-
     % Internal functions:
     % disp_str: wrapped formattedDisplayText, convert everything into string
     % format_ndim_obj: convert a n-dim matrix into string
     % elem_to_str: convert a scalar into string
 
+    % fstr_regex_pattern = "(?<!{{)(?<={)([^{}]+)(?=})(?!}})"; % not easy to handle {{, }}
+
     val = "";
-    % fstr_regex_pattern = "(?<!{{)(?<={)([^{}]+)(?=})(?!}})";
 
     for k = 1:nargin
         fchar = varargin{k};
@@ -175,7 +173,7 @@ function val = elem_to_str(v, format_operator, opts)
     if format_operator~=""
         val = sprintf(format_operator, v);
     elseif isnumeric(v)
-        val = disp_str(v);
+        val = string(v);
     elseif islogical(v)
         val = ternary(v, "true", "false");
     elseif ischar(v)
@@ -226,7 +224,7 @@ function val = format_ndim_obj(A, format_operator, depth)
     arguments
         A
         format_operator string = ""
-        depth                  = 1
+        depth           uint16 = 1
     end
 
     margin = pad("", depth);
@@ -247,6 +245,7 @@ function val = format_ndim_obj(A, format_operator, depth)
 
         len_A = length(A);
         val = "[";
+
         if len_A<=max_disp_obj_len
             for k = 1:(length(A)-1)
                 val = val + elem_to_str(A(k), format_operator) + ", ";
@@ -260,9 +259,13 @@ function val = format_ndim_obj(A, format_operator, depth)
                 val = val + elem_to_str(A(k), format_operator) + ", ";
             end
         end
+
         val = val + elem_to_str(A(end), format_operator) + "]";
+
     else
+
         val = "[";
+
         if nd_size(end)<=max_disp_obj_len
             for k = 1:(nd_size(end)-1)
                 if k~=1
@@ -296,11 +299,13 @@ function val = format_ndim_obj(A, format_operator, depth)
                     ) + sprintf(",\n");
             end
         end
+
         val = val + margin + format_ndim_obj( ...
             index_func(A, nd_size(end)), ...
             format_operator, ...
             depth + 1 ...
         ) + "]";
+
     end
 
 end
