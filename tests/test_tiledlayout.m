@@ -18,6 +18,7 @@ imagesc(Z)
 % Tile 4
 nexttile
 plot3(X,Y,Z)
-%%
 
+%%
 prettyplot(debug=true);
+set_fig_resolution(800, 800);
