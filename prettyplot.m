@@ -10,7 +10,7 @@ function prettyplot(varargin, opts)
         opts.masks = ["CurrentAxes", "Parent"]
         opts.debug logical = false
         opts.auto_update logical = false
-        opts.white_background logical = false
+        opts.white_background logical = true
         opts.MAX_RECUR_LEVEL = 10
     end
 
@@ -77,26 +77,25 @@ function prettyplot(varargin, opts)
     );
 
 
-    % change font size may result in TickLabels incorrect,
-    % call drawnow() to make sure the TickLabels are correctly
-    % updated after changing the font size.
-    for k = 1:2
-        recursive_set( ...
-            fig, config, ...
-            prefix=prefix, ...
-            masks=opts.masks, ...
-            stack=obj_name, ...
-            debug=opts.debug, ...
-            MAX_RECUR_LEVEL=opts.MAX_RECUR_LEVEL ...
-        );
-        drawnow();
-    end
+    % call drawnow() first to make sure all the TickLabels are correctly set by MATLAB
+    drawnow();
+
+    recursive_set( ...
+        fig, config, ...
+        prefix=prefix, ...
+        masks=opts.masks, ...
+        stack=obj_name, ...
+        debug=opts.debug, ...
+        MAX_RECUR_LEVEL=opts.MAX_RECUR_LEVEL ...
+    );
+
 
     function size_changed_callback_func(fig, event)
         if event.EventName~="SizeChanged"
             return
         end
         try
+            drawnow();
             recursive_set( ...
                 fig, config, ...
                 prefix=prefix, ...
@@ -108,6 +107,7 @@ function prettyplot(varargin, opts)
             disp(ME);
         end
     end
+
     if opts.auto_update && isempty(fig.SizeChangedFcn)
         fig.SizeChangedFcn = @size_changed_callback_func;
     end
@@ -152,6 +152,10 @@ function recursive_set(obj, config, opts)
 
     obj_fields = fields(obj);
     cfg_fields = config.keys();
+
+    [~, cfg_idx] = sort(cellfun(@strlength, cfg_fields), "descend"); % only string keys
+    cfg_fields   = cfg_fields(cfg_idx); % cell(idx) -> still cell
+
     masks = dictionary(opts.masks, true(size(opts.masks)));
 
     for i = 1:length(obj_fields)
@@ -165,9 +169,18 @@ function recursive_set(obj, config, opts)
         current_stack = sprintf("%s.%s", opts.stack, k);
 
         for ci = 1:length(cfg_fields)
-            ck = cfg_fields{ci};
+
+            ck_raw = cfg_fields{ci};
+            [ctype, ck] = parse_config_key(ck_raw); % ctype: char, ck: string
+
             if startsWith(opts.stack, opts.prefix) && endsWith(k, ck)
-                new_value = config.get(ck);
+
+                if ~isempty(ctype) && ~endsWith(class(obj), ctype)
+                    % config item specify the class but not matched
+                    continue
+                end
+
+                new_value = config.get(ck_raw);
 
                 if isstrlike(new_value) && startsWith(new_value, "@")
                     new_value = char(new_value);
@@ -187,12 +200,12 @@ function recursive_set(obj, config, opts)
                         ));
                     end
 
-                    eval(command);
+                    eval(command); break
                 elseif is_same_shape(field_value, new_value)
                     if opts.debug
                         fprintf("[prettyplot] %s = %s\n", current_stack, sdisp(new_value));
                     end
-                    obj.(k) = new_value;
+                    obj.(k) = new_value; break % already set, skip futher scan in the config
                 else
                     old_numel = numel(obj.(k));
                     new_numel = numel(new_value);
@@ -210,6 +223,8 @@ function recursive_set(obj, config, opts)
                         sdisp(field_value), size_str(field_value), ...
                         sdisp(new_value), size_str(new_value) ...
                     );
+
+                    break % already set, skip futher scan in the config
                 end
             end
         end
@@ -236,6 +251,7 @@ function config = get_default_config()
         "TickLabel", "@latex-num", ...
         "TickLabelInterpreter", "latex", ...
         "TickLength", [0.02 0.05], ...
+        "(ColorBar).TickLength", 0.03, ...
         "Label.Interpreter", "latex" ...
     );
 end
@@ -282,6 +298,22 @@ function s = size_str(v)
     s = sprintf("%d", size(v, 1));
     for k = 2:ndims(v)
         s = sprintf("%sx%d", s, size(v, k));
+    end
+end
+
+function [ctype, ck] = parse_config_key(key)
+    ctype = '';
+    ck = "";
+
+    key_parts = strsplit(key, ".");
+    for k = key_parts
+        if startsWith(k, "(") && endsWith(k, ")") && k~="()"
+            ctype = k{1}(2:end-1);
+        elseif ck==""
+            ck = k;
+        else
+            ck = ck + "." + k;
+        end
     end
 end
 
