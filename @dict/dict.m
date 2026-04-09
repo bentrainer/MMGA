@@ -18,22 +18,27 @@ classdef dict < handle
                     k = varargin{i};
                 else
                     v = varargin{i};
-                    obj.update(k, v);
+                    obj.set(k, v);
                 end
             end
         end
 
-        function update(self, key, value)
+        function set(self, key, value)
             % Set record in the dict to the given value using the given key.
             if self.contains(key)
-                self.call_update(key, value);
+                self.call_set(key, value);
             else
                 self.add_newitem(key, value);
             end
         end
-        function set(self, key, value)
-            % An alias to dict.update().
-            self.update(key, value);
+        function update(self, d)
+            % Set record in the dict to the given value using the given dict.
+            dkeys = d.keys();
+            for j = 1:length(dkeys)
+                k = dkeys{j};
+                v = d.get(k);
+                self.set(k, v);
+            end
         end
 
         function A = get(self, key, default)
@@ -76,14 +81,14 @@ classdef dict < handle
 
     methods (Access = private)
         function add_newitem(self, key, value)
-            self.call_update(key, value);
+            self.call_set(key, value);
             self.len = self.len + 1;
         end
         function del_nocheck(self, key)
             self.mdict({key}) = [];
             self.len = self.len - 1;
         end
-        function call_update(self, key, value)
+        function call_set(self, key, value)
             self.mdict({key}) = {value};
         end
     end
