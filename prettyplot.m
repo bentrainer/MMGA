@@ -27,6 +27,15 @@ function prettyplot(varargin, opts)
 
     if offset==1
         fig = varargin{1};
+        if class(fig)=="dict"
+            opts.config = fig;
+            if isempty(groot().Children)
+                fprintf("[prettyplot] found no figure\n");
+                return
+            else
+                fig = gcf();
+            end
+        end
     else
         if isempty(groot().Children)
             fprintf("[prettyplot] found no figure\n");
@@ -40,13 +49,9 @@ function prettyplot(varargin, opts)
         fig.Color = "White";
     end
 
-    if isnan(opts.config)
-        config = get_default_config();
-    elseif class(opts.config)=="dict"
-        config = opts.config;
-    else
-        config = get_default_config();
-        warning("[prettyplot] unknown config type: %s", string(class(opts.config)));
+    config = get_default_config();
+    if class(opts.config)=="dict"
+        config.update(opts.config);
     end
 
     for i = 1+offset:length(varargin)
@@ -54,13 +59,19 @@ function prettyplot(varargin, opts)
             k = varargin{i};
         else
             v = varargin{i};
-            config.update(k, v);
+            config.set(k, v);
         end
     end
+
+    [config, deferred_config] = split_deferred_config(config);
 
     if opts.debug
         fprintf("\n[prettyplot] config =\n");
         disp(config.items());
+        if ~isempty(deferred_config.keys())
+            fprintf("\n[prettyplot] deferred config =\n");
+            disp(deferred_config.items());
+        end
     end
 
     % plot, subplot -> fig.Children(:) -> Axes
@@ -76,12 +87,8 @@ function prettyplot(varargin, opts)
         "" ...
     );
 
-
-    % call drawnow() first to make sure all the TickLabels are correctly set by MATLAB
-    drawnow();
-
-    recursive_set( ...
-        fig, config, ...
+    apply_prettyplot_config( ...
+        fig, config, deferred_config, ...
         prefix=prefix, ...
         masks=opts.masks, ...
         stack=obj_name, ...
@@ -95,13 +102,13 @@ function prettyplot(varargin, opts)
             return
         end
         try
-            drawnow();
-            recursive_set( ...
-                fig, config, ...
+            apply_prettyplot_config( ...
+                fig, config, deferred_config, ...
                 prefix=prefix, ...
                 masks=opts.masks, ...
                 stack=obj_name, ...
-                debug=opts.debug ...
+                debug=opts.debug, ...
+                MAX_RECUR_LEVEL=opts.MAX_RECUR_LEVEL ...
             );
         catch ME
             disp(ME);
@@ -116,6 +123,63 @@ function prettyplot(varargin, opts)
         fprintf("[prettyplot] elapsed %.2fs\n", toc(pp_start));
     end
 
+end
+
+
+function apply_prettyplot_config(fig, config, deferred_config, opts)
+
+    arguments
+        fig
+        config
+        deferred_config
+        opts.prefix = ""
+        opts.masks = ["CurrentAxes", "Parent"]
+        opts.stack = "fig"
+        opts.debug = false
+        opts.MAX_RECUR_LEVEL = 10
+    end
+
+    % Let MATLAB settle auto-generated ticks before formatting TickLabels.
+    drawnow();
+
+    recursive_set( ...
+        fig, config, ...
+        prefix=opts.prefix, ...
+        masks=opts.masks, ...
+        stack=opts.stack, ...
+        debug=opts.debug, ...
+        MAX_RECUR_LEVEL=opts.MAX_RECUR_LEVEL ...
+    );
+
+    if ~isempty(deferred_config.keys())
+        drawnow();
+        recursive_set( ...
+            fig, deferred_config, ...
+            prefix=opts.prefix, ...
+            masks=opts.masks, ...
+            stack=opts.stack, ...
+            debug=opts.debug, ...
+            MAX_RECUR_LEVEL=opts.MAX_RECUR_LEVEL ...
+        );
+    end
+
+    drawnow();
+end
+
+
+function [config, deferred_config] = split_deferred_config(config)
+    deferred_config = dict();
+    cfg_fields = config.keys();
+
+    for i = 1:length(cfg_fields)
+        ck_raw = cfg_fields{i};
+        [~, ck] = parse_config_key(ck_raw);
+
+        if endsWith(ck, "TickLabel")
+            deferred_config.set(ck_raw, config.get(ck_raw));
+            config.remove(ck_raw);
+        end
+    end
 end
 
 
