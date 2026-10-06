@@ -1,18 +1,8 @@
 function C = and(A, B)
-% Return a new dict object with the keys in both dict.
+% Return a new dict object with the keys in both dict, in the order of the first.
 % If two dicts have different value for a same key, the
 % value from the first one is used, with an
 % MMGA:dict:valueMismatch warning.
-
-    % Scan the smaller dict, but take every value from A.
-    small = A;
-    large = B;
-    if A.len > B.len
-        small = B;
-        large = A;
-    end
-
-    small_keys = small.keys();
 
     % Construct the result through class(A) rather than calling dict().
     % As the +mtools submodule, the class is mtools.dict, and an unqualified
@@ -20,13 +10,14 @@ function C = and(A, B)
     % one. class(A) gives "dict" or "mtools.dict" to match the layout.
     C = feval(class(A));
 
-    for kn = 1:length(small_keys)
-        k = small_keys{kn};
-        if large.contains(k)
+    Aks = A.keys();
+    for kn = 1:length(Aks)
+        k = Aks{kn};
+        if B.contains(k)
             value = A.get(k);
 
-            % Values compare by keyHash, as in eq.m.
-            if keyHash(value) ~= keyHash(B.get(k))
+            % Values compare as in eq.m.
+            if ~A.same_value(value, B.get(k))
                 warning( ...
                     "MMGA:dict:valueMismatch", ...
                     "key '%s' has different values in the two dicts, using the value from the first", ...

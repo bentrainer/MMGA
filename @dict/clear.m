@@ -5,6 +5,8 @@ function clear(self)
     % if GC works correctly, I should do
     % nothing special here except for just
     % simply setting self.mdict to a new value.
-    self.mdict = dictionary({}, {});
-    self.len   = 0;
+    self.mdict    = dictionary({}, {});
+    self.order    = dictionary({}, []);
+    self.len      = 0;
+    self.next_seq = 0;
 end
