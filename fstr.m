@@ -1,329 +1,264 @@
 function val = fstr(varargin)
-    % convert a Python like f-string into string,
-    % accept multiple f-string input.
-    % Example: A=rand(2, 3); fstr("A={A}")
-
-    % Internal functions:
-    % disp_str: wrapped formattedDisplayText, convert everything into string
-    % format_ndim_obj: convert a n-dim matrix into string
-    % elem_to_str: convert a scalar into string
-
-    % fstr_regex_pattern = "(?<!{{)(?<={)([^{}]+)(?=})(?!}})"; % not easy to handle {{, }}
+    % FSTR  Format Python-style f-strings in the caller's workspace.
+    %   val = fstr(fmt1, fmt2, ...) formats each argument and concatenates
+    %   the results into one string.
+    %
+    %   {expr}      evaluates expr in the caller and formats the result
+    %   {expr:fmt}  formats each element with sprintf("%fmt", element)
+    %   {{ and }}   print literal braces
+    %
+    %   The format spec starts at the first ":" outside brackets and quotes,
+    %   so {x(1:3)} works; wrap a top-level range in parentheses: {(1:3)}.
+    %   Literal text passes through sprintf, so escapes such as \n expand,
+    %   while % prints as is. An unclosed { or a lone } prints as is.
+    %
+    %   Arrays print row-major, nested along the first dimension, and a
+    %   dimension longer than 20 shows only its first and last 5 entries.
+    %
+    %   Example: A = rand(2, 3); fstr("A = {A:.2f}")
+    %
+    %   Never pass untrusted text as a format: the {} contents run as code.
 
     val = "";
-
     for k = 1:nargin
         fchar = varargin{k};
-
-        if isstring(fchar)
+        if isstring(fchar) && isscalar(fchar) && ~ismissing(fchar)
             fchar = char(fchar);
         end
 
-        if ~ischar(fchar)
-            if k==1
-                warning("fstr: expected string but got %s", class(fchar));
-            else
-                warning("fstr: expected string but got %s at varargin{%d}", class(fchar), k);
-            end
-
+        if ~ischar(fchar) || ~(isrow(fchar) || isempty(fchar))
+            warning( ...
+                "MMGA:fstr:notText", ...
+                "fstr: expected a string scalar or character vector but got a %s %s at argument %d", ...
+                join(string(size(fchar)), "x"), class(fchar), k ...
+            );
             val = val + disp_str(fchar);
-
             continue
         end
 
-
-        len = length(fchar);
-        pos = 1;
-
-        % [start_idx, end_idx] = regexp(fchar, fstr_regex_pattern);
-        [start_idx, end_idx] = find_fstr_pattern(fchar);
-
-        for idx = 1:length(start_idx)
-            l = start_idx(idx);
-            r = end_idx(idx);
-
-            if l-1>pos
-                val = val + safe_sprintf(fchar(pos:l-2));
-            end
-            pos = r+2;
-
-            % parse the f-expr like {varname} {varname:.3f}
-            [var_name, suffix] = parse_f_expr(string(fchar(l:r)));
-            if suffix~=""
-                % eg. ".3f" -> "%.3f"
-                suffix = "%" + suffix;
+        [texts, exprs, specs] = parse_fields(fchar);
+        for m = 1:numel(exprs)
+            val = val + literal(texts(m));
+            if strip(exprs(m)) == ""
+                continue
             end
 
-            if var_name==""
-                str = "";
-            else
-                try
-                    obj = evalin("caller", var_name);
-                    str = format_ndim_obj(obj, suffix);
-                catch ME
-                    warning("fstr: failed to eval ""%s"" with error:\n  %s\n%s", var_name, ME.message, stack_str(ME.stack));
-                    str = "";
+            % evalin must stay here: inside a helper, "caller" would be fstr
+            try
+                obj = evalin("caller", exprs(m));
+            catch ME
+                warning( ...
+                    "MMGA:fstr:evalFailed", ...
+                    "fstr: failed to eval ""%s"" with error:\n  %s\n%s", ...
+                    exprs(m), ME.message, stack_str(ME.stack) ...
+                );
+                continue
+            end
+
+            val = val + format_field(obj, specs(m));
+        end
+        val = val + literal(texts(end));
+    end
+end
+
+function [texts, exprs, specs] = parse_fields(s)
+    % Split the character row s around its {expr} and {expr:spec} fields.
+    % texts holds the literal text before each field and after the last
+    % one, with {{ and }} already reduced to single braces.
+    texts = strings(1, 0);
+    exprs = strings(1, 0);
+    specs = strings(1, 0);
+
+    text = "";
+    pos = 1;
+    n = numel(s);
+    for i = find(s == '{' | s == '}')
+        if i < pos
+            continue  % part of an escape or a field already consumed
+        end
+
+        if i < n && s(i + 1) == s(i)
+            text = text + s(pos:i);
+            pos = i + 2;
+        elseif s(i) == '{'
+            [stop, colon] = scan_field(s, i + 1);
+            if stop > 0
+                if colon == 0
+                    colon = stop;
                 end
+                texts(end + 1) = text + s(pos:i - 1); %#ok<AGROW>
+                exprs(end + 1) = s(i + 1:colon - 1); %#ok<AGROW>
+                specs(end + 1) = s(colon + 1:stop - 1); %#ok<AGROW>
+                text = "";
+                pos = stop + 1;
             end
-
-            val = val + str;
-
         end
-
-        % handle the content after the last f_expr
-        if pos<=len
-            val = val + safe_sprintf(fchar(pos:len));
-        end
-
-
     end
-
+    texts(end + 1) = text + s(pos:n);
 end
 
-
-function val = safe_sprintf(str)
-    val = replace(str, "{{", "{");
-    val = replace(val, "}}", "}");
-    val = sprintf(val);
-end
-
-
-function val = disp_str(obj)
-    val = strip(formattedDisplayText(obj, LineSpacing="compact", SuppressMarkup=true, UseTrueFalseForLogical=true));
-end
-
-
-function [start_idx, end_idx] = find_fstr_pattern(fchar)
-    len = length(fchar);
-    pos = 0;
+function [stop, colon] = scan_field(s, first)
+    % Find the "}" that closes a field whose expression starts at s(first),
+    % and the first ":" outside brackets and quotes, which starts the format
+    % spec. stop is 0 if the field never closes, and colon is 0 if it has
+    % no spec.
     depth = 0;
-
-    start_idx = NaN(1, ceil(len/2));
-    end_idx = NaN(1, ceil(len/2));
-
-    if len<2
-        return
-    end
-
-    % last_char = ' ';
-    curr_char = ' ';
-    next_char = fchar(1);
-
-    for k = 1:len-1
-        last_char = curr_char;
-        curr_char = next_char;
-        next_char = fchar(k+1);
-
-        if curr_char=='{'
-            depth = ternary(next_char=='{', depth+len, depth+1);
-            if depth==1
-                pos = pos + 1;
-                start_idx(pos) = k+1;
+    colon = 0;
+    quote = '';
+    k = first;
+    while k <= numel(s)
+        c = s(k);
+        if ~isempty(quote)
+            if c == quote && k < numel(s) && s(k + 1) == quote
+                k = k + 1;  % a doubled quote is an escaped quote
+            elseif c == quote
+                quote = '';
             end
-        elseif curr_char=='}'
-            depth = ternary(last_char=='}', depth-len, depth-1);
-            if (depth<=0 && pos>0 && isnan(end_idx(pos)))
-                end_idx(pos) = k-1;
+        elseif colon == 0 && (c == '"' || (c == '''' && ~is_transpose(s, k, first)))
+            quote = c;
+        elseif c == '(' || c == '[' || c == '{'
+            depth = depth + 1;
+        elseif c == ')' || c == ']' || c == '}'
+            if depth > 0
+                depth = depth - 1;
+            elseif c == '}'
+                stop = k;
+                return
             end
+        elseif c == ':' && depth == 0 && colon == 0
+            colon = k;
         end
-
-        depth = ternary(depth<0, 0, depth);
-        % fprintf("%d ", depth);
+        k = k + 1;
     end
-
-    if next_char=='}'
-        depth = ternary(curr_char=='}', depth-len, depth-1);
-        if depth<=0 && pos>0 && isnan(end_idx(pos))
-            end_idx(pos) = len-1;
-        end
-    end
-
-    % filter out NaN
-    idx = ~isnan(end_idx);
-    start_idx = start_idx(idx);
-    end_idx = end_idx(idx);
-
-    idx = ~isnan(start_idx);
-    start_idx = start_idx(idx);
-    end_idx = end_idx(idx);
-
+    stop = 0;
 end
 
+function tf = is_transpose(s, k, first)
+    % A quote right after a name, number, closing bracket, dot, or another
+    % quote transposes; anywhere else it starts a character vector.
+    tf = k > first && (isletter(s(k - 1)) || any(s(k - 1) == '0123456789_)]}.'''));
+end
 
-function [var_name, suffix] = parse_f_expr(f_expr)
-    suffix = "";
-
-    f_expr = split(f_expr, ":");
-    var_name = f_expr(1);
-
-    if length(f_expr)>1
-        suffix = join(f_expr(2:end), ":");
+function val = literal(text)
+    % Expand escapes such as \n in literal text. A lone % prints as is, and
+    % %% still prints one %.
+    val = text;
+    if contains(text, ["\", "%"])
+        val = sprintf(replace(replace(text, "%%", "%"), "%", "%%"));
     end
 end
 
-
-function val = elem_to_str(v, format_operator, opts)
-
-    arguments
-        v
-        format_operator string = ""
-        opts.no_double_quote logical = false
+function val = format_field(obj, spec)
+    % Format an evaluated field, falling back to MATLAB's display text.
+    fmt = "";
+    if spec ~= ""
+        if isempty(regexp(spec, "^(\d+\$)?[-+ 0#]*(\d+|\*)?(\.(\d+|\*))?[bt]?[cdeEfgGiosuxX]", "once"))
+            warning( ...
+                "MMGA:fstr:badFormat", ...
+                "fstr: ""%s"" is not a sprintf format; wrap a top-level range in parentheses, as in {(1:3)}", ...
+                spec ...
+            );
+        else
+            fmt = "%" + spec;
+        end
     end
 
-    if format_operator~=""
-        val = sprintf(format_operator, v);
+    try
+        val = format_value(obj, fmt, 1);
+    catch ME
+        warning( ...
+            "MMGA:fstr:formatFailed", ...
+            "fstr: could not format a %s value, showing its display text:\n  %s", ...
+            class(obj), ME.message ...
+        );
+        val = disp_str(obj);
+    end
+end
+
+function val = format_value(A, fmt, depth)
+    % Format A row-major, nested along its first dimension, such as
+    % [[1, 2], [3, 4]]. fmt is a sprintf format, or "" for the default.
+    if isempty(A)
+        val = sprintf("<empty %s>", class(A));
+    elseif isscalar(A)
+        val = elem_to_str(A, fmt, false);
+    elseif istable(A) || istimetable(A)
+        val = disp_str(A);
+    elseif ischar(A) && isvector(A)
+        val = "'" + string(A(:)') + "'";
+    elseif isvector(A)
+        idx = shown_indices(numel(A));
+        parts = strings(1, numel(idx));
+        parts(idx == 0) = "...";
+        for k = find(idx)
+            parts(k) = elem_to_str(A(idx(k)), fmt, true);
+        end
+        val = "[" + join(parts, ", ") + "]";
+    else
+        idx = shown_indices(size(A, 1));
+        parts = strings(1, numel(idx));
+        parts(idx == 0) = "...";
+        for k = find(idx)
+            parts(k) = format_value(first_dim_slice(A, idx(k)), fmt, depth + 1);
+        end
+        val = "[" + join(parts, "," + newline + blanks(depth)) + "]";
+    end
+end
+
+function idx = shown_indices(n)
+    % Indices to show along a dimension of length n. A longer dimension
+    % shows EDGE_SHOWN entries at each end around a 0, which marks "...".
+    MAX_SHOWN = 20;
+    EDGE_SHOWN = 5;
+    if n <= MAX_SHOWN
+        idx = 1:n;
+    else
+        idx = [1:EDGE_SHOWN, 0, n - EDGE_SHOWN + 1:n];
+    end
+end
+
+function sub = first_dim_slice(A, k)
+    % Return A(k, :, ...) without its leading singleton dimension, so a
+    % 2-by-3-by-4 array gives 3-by-4 slices.
+    sz = size(A);
+    if numel(sz) == 2
+        sub = A(k, :);
+    else
+        sub = reshape(A(k, :), sz(2:end));
+    end
+end
+
+function val = elem_to_str(v, fmt, quote)
+    % Format one element. fmt is a sprintf format, or "" for the default;
+    % quote wraps a string in double quotes, as inside arrays.
+    if fmt ~= ""
+        val = sprintf(fmt, v);
     elseif isnumeric(v)
         val = string(v);
+        if ismissing(val)
+            val = string(num2str(v));  % string(NaN) is <missing>
+        end
     elseif islogical(v)
         val = ternary(v, "true", "false");
     elseif ischar(v)
-        val = sprintf("'%c'", v);
+        val = "'" + v + "'";
+    elseif isstring(v) && ismissing(v)
+        val = "<missing>";
     elseif isstring(v)
-        val = sprintf(ternary(opts.no_double_quote, "%s", """%s"""), v);
-    elseif isstruct(v)
-        val = disp_str(v);
-    elseif iscell(v)
+        val = ternary(quote, """" + v + """", v);
+    elseif isstruct(v) || iscell(v)
         val = disp_str(v);
     elseif isa(v, "function_handle")
-        val = sprintf("<function handle of %s>", disp_str(v));
+        val = "<function handle of " + disp_str(v) + ">";
     elseif ismethod(v, "disp") || ~isobject(v)
         val = disp_str(v);
     else
         val = sprintf("<%s object>", class(v));
     end
-
 end
 
-
-function n = max_disp_obj_len(action, new_n)
-    arguments
-        action string = "GET"
-        new_n         = 20
-    end
-    persistent n_config;
-    if action~="GET" || isempty(n_config)
-        n_config = new_n;
-    end
-    n = n_config;
-end
-function n = truncate_obj_len(action, new_n)
-    arguments
-        action string = "GET"
-        new_n         = 5
-    end
-    persistent n_config;
-    if action~="GET" || isempty(n_config)
-        n_config = new_n;
-    end
-    n = n_config;
-end
-
-
-function val = format_ndim_obj(A, format_operator, depth)
-
-    arguments
-        A
-        format_operator string = ""
-        depth           uint16 = 1
-    end
-
-    margin = pad("", depth);
-    index_func = @index_first_dim;
-    nd_size = flip(size(A));
-
-
-    if isempty(A)
-        val = sprintf("<empty %s>", class(A));
-    elseif isscalar(A)
-        val = elem_to_str(A, format_operator, no_double_quote=true);
-    elseif isvector(A)
-
-        if ischar(A)
-            val = sprintf("'%s'", string(A));
-            return
-        end
-
-        len_A = length(A);
-        val = "[";
-
-        if len_A<=max_disp_obj_len
-            for k = 1:(length(A)-1)
-                val = val + elem_to_str(A(k), format_operator) + ", ";
-            end
-        else
-            for k = 1:truncate_obj_len
-                val = val + elem_to_str(A(k), format_operator) + ", ";
-            end
-            val = val + "..., ";
-            for k = (len_A-truncate_obj_len+1):(len_A-1)
-                val = val + elem_to_str(A(k), format_operator) + ", ";
-            end
-        end
-
-        val = val + elem_to_str(A(end), format_operator) + "]";
-
-    else
-
-        val = "[";
-
-        if nd_size(end)<=max_disp_obj_len
-            for k = 1:(nd_size(end)-1)
-                if k~=1
-                    val = val + margin;
-                end
-                val = val + format_ndim_obj( ...
-                    index_func(A, k), ...
-                    format_operator, ...
-                    depth + 1 ...
-                ) + sprintf(",\n");
-            end
-        else
-            for k = 1:truncate_obj_len
-                if k~=1
-                    val = val + margin;
-                end
-                val = val + format_ndim_obj( ...
-                    index_func(A, k), ...
-                    format_operator, ...
-                    depth + 1 ...
-                ) + sprintf(",\n");
-            end
-            val = val + margin + sprintf("...,\n");
-            % val = val + margin + sprintf("(%d lines)...,\n", nd_size(end) - 2*truncate_obj_len);
-            for k = (nd_size(end)-truncate_obj_len+1):(nd_size(end)-1)
-                val = val + margin + ...
-                    format_ndim_obj( ...
-                        index_func(A, k), ...
-                        format_operator, ...
-                        depth + 1 ...
-                    ) + sprintf(",\n");
-            end
-        end
-
-        val = val + margin + format_ndim_obj( ...
-            index_func(A, nd_size(end)), ...
-            format_operator, ...
-            depth + 1 ...
-        ) + "]";
-
-    end
-
-end
-
-function A_sub = index_last_dim(A, k)
-    S = struct('type', '()', 'subs', '');
-    S.subs = repmat({':'}, 1, ndims(A));
-    S.subs{end} = k;
-
-    A_sub = subsref(A, S);
-end
-
-function A_sub = index_first_dim(A, k)
-    S = struct('type', '()', 'subs', '');
-    S.subs = repmat({':'}, 1, ndims(A));
-    S.subs{1} = k;
-
-    A_sub = subsref(A, S);
+function val = disp_str(obj)
+    val = strip(formattedDisplayText(obj, LineSpacing="compact", SuppressMarkup=true, UseTrueFalseForLogical=true));
 end
 
 function val = stack_str(stack)
