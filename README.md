@@ -36,5 +36,6 @@ Currently I just have a naïve thinking of this, let's see if it could be done.
 * [dict](docs/dict.md)
 * [prettyplot](docs/prettyplot.md)
 * [functools.partial](docs/functools.md)
+* [StringBuilder](docs/string-builder.md)
 * printf: `printf(varargin, sep=" ", ends=newline(), file=fileID)` % all key-value pairs are optional; `sep` and `ends` print as is, so use `sep=newline` rather than `sep="\n"`
 * ternary: `ternary(cond, a, b)` % equals to `cond?a:b` in C
