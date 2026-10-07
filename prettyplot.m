@@ -24,8 +24,8 @@ function varargout = prettyplot(varargin, opts)
         opts.config = []
         opts.white_background logical = true
         opts.debug logical = false
-        opts.figsize double = []
-        opts.figsize_units (1, 1) string {mustBeMember(opts.figsize_units, ["inches", "centimeters", "points"])} = "inches"
+        opts.size double = []
+        opts.size_unit (1, 1) string {mustBeMember(opts.size_unit, ["in", "cm", "pt"])} = "in"
         % deprecated, accepted and ignored
         opts.strict
         opts.masks
@@ -45,8 +45,8 @@ function varargout = prettyplot(varargin, opts)
         );
     end
 
-    if ~isempty(opts.figsize) && (numel(opts.figsize) ~= 2 || any(~isfinite(opts.figsize)) || any(opts.figsize <= 0))
-        error("MMGA:prettyplot:invalidFigsize", "figsize must be [width height] with positive values");
+    if ~isempty(opts.size) && (numel(opts.size) ~= 2 || any(~isfinite(opts.size)) || any(opts.size <= 0))
+        error("MMGA:prettyplot:invalidSize", "size must be [width height] with positive values");
     end
 
     [targets, rules] = parse_inputs(varargin, opts.config);
@@ -64,7 +64,7 @@ function varargout = prettyplot(varargin, opts)
 
     % pin before anything changes the layout, so manual labels keep the
     % ticks they were written for
-    if isempty(opts.figsize)
+    if isempty(opts.size)
         pin_manual_ticks(nodes);
     else
         pin_manual_ticks(collect_nodes(figs));
@@ -74,8 +74,8 @@ function varargout = prettyplot(varargin, opts)
         apply_background(figs);
     end
 
-    if ~isempty(opts.figsize)
-        apply_figsize(figs, opts.figsize(:)', opts.figsize_units);
+    if ~isempty(opts.size)
+        apply_size(figs, opts.size(:)', opts.size_unit);
     end
 
     report = apply_rules(nodes, rules, opts.debug);
@@ -516,10 +516,13 @@ function apply_background(figs)
     end
 end
 
-function apply_figsize(figs, figsize, units)
+function apply_size(figs, fig_size, unit)
+    units = dictionary(["in", "cm", "pt"], ["inches", "centimeters", "points"]);
+    units = units(unit);
+
     for f = figs
         if isprop(f, "WindowStyle") && f.WindowStyle == "docked"
-            warning("MMGA:prettyplot:figsizeNotApplied", "[prettyplot] figsize does not apply to a docked figure");
+            warning("MMGA:prettyplot:sizeNotApplied", "[prettyplot] size does not apply to a docked figure");
             continue
         end
 
@@ -527,17 +530,17 @@ function apply_figsize(figs, figsize, units)
         restore = onCleanup(@() set(f, "Units", old_units));
         f.Units = units;
         pos = f.Position;
-        f.Position = [pos(1), pos(2) + pos(4) - figsize(2), figsize];
+        f.Position = [pos(1), pos(2) + pos(4) - fig_size(2), fig_size];
         f.PaperUnits = units;
-        f.PaperSize = figsize;
+        f.PaperSize = fig_size;
         f.PaperPositionMode = "auto";
 
         got = f.Position(3:4);
-        if any(abs(got - figsize) > 1e-3 * max(figsize))
+        if any(abs(got - fig_size) > 1e-3 * max(fig_size))
             warning( ...
-                "MMGA:prettyplot:figsizeNotApplied", ...
+                "MMGA:prettyplot:sizeNotApplied", ...
                 "[prettyplot] asked for a %gx%g %s figure but got %gx%g; it may not fit on the screen", ...
-                figsize(1), figsize(2), units, got(1), got(2) ...
+                fig_size(1), fig_size(2), unit, got(1), got(2) ...
             );
         end
         clear restore

@@ -146,13 +146,16 @@ function pass = test_prettyplot(verbose)
     prettyplot(f, "(Axes).Tag", "@@literal");
     cases(end + 1, :) = {"@@ escapes a literal @", string(ax.Tag), "@literal"};
 
-    % figsize sets the size in the given units and restores Units
+    % size sets the size in the given unit and restores Units
     f = new_figure();
     axes(f);
-    prettyplot(f, figsize = [3.5 2.5]);
+    prettyplot(f, size = [3.5 2.5]);
     units = string(f.Units);
     f.Units = "inches";
-    cases(end + 1, :) = {"figsize", units + " " + mat2str(round(f.Position(3:4), 3)), "pixels [3.5 2.5]"};
+    cases(end + 1, :) = {"size", units + " " + mat2str(round(f.Position(3:4), 3)), "pixels [3.5 2.5]"};
+    prettyplot(f, size = [8 6], size_unit = "cm");
+    f.Units = "centimeters";
+    cases(end + 1, :) = {"size in cm", mat2str(round(f.Position(3:4), 3)) + " " + f.PaperUnits, "[8 6] centimeters"};
 
     % both yyaxis labels, not only the active side's
     [f, ax] = new_axes();
@@ -204,8 +207,7 @@ function pass = test_prettyplot(verbose)
 
     cases(end + 1, :) = {"invalid key", error_id(@() prettyplot(f, "(Axes.FontSize", 1)), "MMGA:prettyplot:invalidKey"};
     cases(end + 1, :) = {"invalid target", error_id(@() prettyplot(42, "FontSize", 1)), "MMGA:prettyplot:invalidTarget"};
-    cases(end + 1, :) = {"invalid figsize", error_id(@() prettyplot(f, figsize = [1 2 3])), ...
-        "MMGA:prettyplot:invalidFigsize"};
+    cases(end + 1, :) = {"invalid size", error_id(@() prettyplot(f, size = [1 2 3])), "MMGA:prettyplot:invalidSize"};
 
     % the old recursive walk took about 10 s on this figure
     f = new_figure();

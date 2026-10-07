@@ -113,7 +113,7 @@ Apply the lab plot style to a finished figure through selector rules.
 plot(1:3, [1 4 9]);
 xlabel("time (s)");
 prettyplot();                                   % the current figure, lab defaults
-prettyplot(gcf, "FontSize", 12, figsize = [3.5 2.6]);
+prettyplot(gcf, "FontSize", 12, size = [3.5 2.6]);
 ```
 
 ### [set_fig_resolution](docs/set-fig-resolution.md)

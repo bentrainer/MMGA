@@ -2,7 +2,7 @@
 
 `set_fig_resolution` resizes a figure to a width and height in pixels and
 centers it on the screen. It never creates a figure. For a size in inches or
-centimeters, as for a paper, use `prettyplot(fig, figsize = [w h])`.
+centimeters, as for a paper, use `prettyplot(fig, size = [w h])`.
 
 ```matlab
 fig = figure();

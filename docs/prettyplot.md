@@ -15,7 +15,7 @@ prettyplot();                                   % the current figure, lab defaul
 prettyplot(gcf, "FontSize", 12);                % override a default
 prettyplot(gcf, "Tile2.FontSize", 10);          % only the axes in tile 2
 prettyplot(gcf, "(ColorBar).TickLength", 0.02); % only colorbars
-prettyplot(gcf, figsize = [3.5 2.6]);           % 3.5 x 2.6 inches
+prettyplot(gcf, size = [3.5 2.6]);              % 3.5 x 2.6 inches
 report = prettyplot(gcf);                       % table of every property set
 ```
 
@@ -41,13 +41,15 @@ prettyplot(config, "Key", value, ..., name = value)
 | --- | --- | --- |
 | `config` | `[]` | Rules that override the defaults |
 | `white_background` | `true` | White figure; switches a dark theme to light first |
-| `figsize` | `[]` | `[width height]` of the figure, as in matplotlib |
-| `figsize_units` | `"inches"` | `"inches"`, `"centimeters"`, or `"points"` |
+| `size` | `[]` | `[width height]` of the figure, as matplotlib's `figsize` |
+| `size_unit` | `"in"` | `"in"`, `"cm"`, or `"pt"` |
 | `debug` | `false` | Print every property set and the elapsed time |
 
-`figsize` also sets the paper size, so `print` and `saveas` match the screen
+`size` resizes each figure that holds a target, even when the target is an
+axes. It also sets the paper size, so `print` and `saveas` match the screen
 size. A docked figure, or one larger than the screen, may not take the size;
-`prettyplot` then warns with `MMGA:prettyplot:figsizeNotApplied`.
+`prettyplot` then warns with `MMGA:prettyplot:sizeNotApplied`. A `size` that
+is not two positive numbers throws `MMGA:prettyplot:invalidSize`.
 
 ## Defaults
 
@@ -157,6 +159,9 @@ ticks they were written for. `xticks` with `xticklabels` already pins them.
 - `strict`, `masks`, `auto_update`, and `MAX_RECUR_LEVEL` are ignored with
   `MMGA:prettyplot:deprecatedOption`. Use a target for `strict`, and drop
   `auto_update`: labels now follow resizes by themselves.
+- `figsize` and `figsize_units` are now `size` and `size_unit`, and the unit
+  is `"in"`, `"cm"`, or `"pt"`. The old names are no longer options, so they
+  warn with `MMGA:prettyplot:unknownProperty` as rules.
 
 ## Limitations
 
