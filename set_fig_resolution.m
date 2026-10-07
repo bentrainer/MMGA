@@ -1,7 +1,7 @@
 function set_fig_resolution(fig_optional, width, height, opts)
 %set_fig_resolution.m sets a figure with given resolution
 % Usages:
-%     set_fig_resolution() -> set gcf() to default 1280x800
+%     set_fig_resolution() -> set gcf() to default 1280x720
 %     set_fig_resolution(width, height) -> set gcf() to width x height
 %     set_fig_resolution(some_fig, width, height) -> set "some_fig" to width x height
 
@@ -13,7 +13,10 @@ function set_fig_resolution(fig_optional, width, height, opts)
     end
 
     if opts.position ~= "center"
-        warning("position=""%s"" not implemented yet", opts.position);
+        warning( ...
+            "MMGA:set_fig_resolution:positionNotImplemented", ...
+            "position=""%s"" not implemented yet", opts.position ...
+        );
         opts.position = "center";
     end
 
@@ -26,7 +29,7 @@ function set_fig_resolution(fig_optional, width, height, opts)
         if ~isempty(groot().CurrentFigure)
             fig_optional = gcf();
         else
-            warning("no matlab.ui.Figure found, do nothing");
+            warning("MMGA:set_fig_resolution:noFigure", "no matlab.ui.Figure found, do nothing");
             return
         end
     end

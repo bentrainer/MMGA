@@ -25,11 +25,17 @@ set_fig_resolution(fig, width, height, position = "center")
 | `position` | `"center"` | Where to place the figure; only `"center"` is implemented |
 
 - `width` and `height` default to 1280 and 720.
-- Without `fig`, it resizes the current figure. When no figure exists, it
-  warns and does nothing.
+- Without `fig`, it resizes the current figure. When there is no current
+  figure, it warns and does nothing.
+
+## Warnings
+
+| Identifier | Cause |
+| --- | --- |
+| `MMGA:set_fig_resolution:noFigure` | No `fig` was given and there is no current figure; nothing changes. |
+| `MMGA:set_fig_resolution:positionNotImplemented` | `position` is not `"center"`; the figure is centered. |
 
 ## Limitations
 
 - Any `position` other than `"center"` warns and centers the figure.
 - The figure's `Units` must be `"pixels"`, the default.
-- Its warnings have no `MMGA:*` identifier.
