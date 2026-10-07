@@ -90,6 +90,17 @@ function pass = test_string_builder(verbose)
     sb.append("hi");
     cases(end + 1, :) = {"construct with capacity", sb.to_str(), "hi"};
 
+    % a non-scalar capacity warns and still makes an empty builder,
+    % ignoring the arguments after it
+    state = warning("off", "MMGA:StringBuilder:nonscalarCapacity");
+    lastwarn("", "");
+    sb = StringBuilder([10 20], "ignored");
+    [~, warn_id] = lastwarn();
+    warning(state);
+    cases(end + 1, :) = {"non-scalar capacity warning", string(warn_id), ...
+        "MMGA:StringBuilder:nonscalarCapacity"};
+    cases(end + 1, :) = {"construct with non-scalar capacity", sb.to_str(), ""};
+
     % MATLAB appends to an unshared string in place; if that stops
     % applying, appends turn quadratic and this takes about 20 s, not 20 ms
     num_appends = 1e5;

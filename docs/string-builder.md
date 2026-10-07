@@ -41,7 +41,8 @@ s = string(sb)
 - `to_str()` and `string(sb)` return the text as a string scalar. The result
   is a copy: later appends do not change it.
 - `StringBuilder(n)`, with a number `n`, makes an empty builder. The number
-  used to set the capacity and is now ignored.
+  used to set the capacity and is now ignored, as are any arguments after it.
+  A non-scalar `n` warns with `MMGA:StringBuilder:nonscalarCapacity`.
 
 ## Python to MATLAB
 
@@ -61,10 +62,11 @@ s = string(sb)
 | `size` | Read-only; equals `len`. |
 | `buffer` | Read-only; the text as a character row vector. |
 
-## Errors
+## Warnings and errors
 
 | Identifier | Cause |
 | --- | --- |
+| `MMGA:StringBuilder:nonscalarCapacity` | Warning: `StringBuilder(n)` got a non-scalar number `n`. |
 | `MMGA:StringBuilder:charMatrix` | `append` got a character matrix. |
 | `MMGA:StringBuilder:missingString` | `append` got a missing string. |
 | `MMGA:StringBuilder:invalidOperand` | `sb + x` got an `x` that is not text or a number. |

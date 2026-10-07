@@ -26,7 +26,7 @@ classdef StringBuilder < handle
             % MATLAB now manages the capacity, so the value is ignored
             if isnumeric(varargin{1})
                 if ~isscalar(varargin{1})
-                    warning("idk");
+                    warning("MMGA:StringBuilder:nonscalarCapacity", "ignoring a non-scalar capacity argument");
                 end
             else
                 obj.append(varargin{:});
