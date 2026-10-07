@@ -39,8 +39,6 @@ MMGA needs MATLAB R2022b or later.
   `mpminstall("path/to/MMGA")`.
 - Or add it to the path with `addpath("path/to/MMGA")`, and run `savepath`
   to keep it there.
-- To use it as a namespace, put it in a folder named `+mtools`, for example
-  as a git submodule, and call `mtools.fstr`, `mtools.dict`, and so on.
 
 ## Usage
 

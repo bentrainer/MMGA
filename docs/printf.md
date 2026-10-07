@@ -37,9 +37,3 @@ printf(value1, value2, ..., sep = " ", ends = newline, file = 1)
 | `print(a, end="")` | `printf(a, ends = "")` |
 | `print(a, file=f)` | `printf(a, file = fid)`, with `fid` from `fopen` |
 | `print(f"{a:.2f}")` | `printf(fstr("{a:.2f}"))` |
-
-## Limitations
-
-- In a namespace layout such as `+mtools`, `mtools.printf` calls the
-  top-level `fstr`. Without a top-level MMGA on the path, it throws
-  `MATLAB:UndefinedFunction`.

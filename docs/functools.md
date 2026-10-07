@@ -17,8 +17,6 @@ has("ABC", "b")                             % true
 has("ABC", "b", IgnoreCase = false)         % false: the call overrides
 ```
 
-In TMI's namespace layout, call it as `mtools.functools.partial`.
-
 ## Python to MATLAB
 
 | Python | MATLAB |

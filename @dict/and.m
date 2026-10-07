@@ -4,10 +4,7 @@ function C = and(A, B)
 % value from the first one is used, with an
 % MMGA:dict:valueMismatch warning.
 
-    % Construct the result through class(A) rather than calling dict().
-    % As the +mtools submodule, the class is mtools.dict, and an unqualified
-    % dict() would resolve to a top-level MMGA on the path, or fail without
-    % one. class(A) gives "dict" or "mtools.dict" to match the layout.
+    % Construct the result through class(A), as copy does.
     C = feval(class(A));
 
     Aks = A.keys();

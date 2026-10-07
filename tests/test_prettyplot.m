@@ -221,8 +221,6 @@ function pass = test_prettyplot(verbose)
     elapsed = toc(t0);
     cases(end + 1, :) = {sprintf("2x2 tiled figure in %.2f s", elapsed), string(elapsed < 3), "true"};
 
-    cases(end + 1, :) = {"namespace layout", namespace_check(), "11 mtools.dict"};
-
     for k = 1:size(cases, 1)
         [label, val, dval] = cases{k, :};
 
@@ -276,31 +274,4 @@ function id = error_id(f)
     catch err
         id = string(err.identifier);
     end
-end
-
-function result = namespace_check()
-% Run prettyplot as mtools.prettyplot with no top-level MMGA on the path,
-% as TMI loads it, to catch unqualified calls to sibling files.
-
-    repo = fileparts(fileparts(mfilename("fullpath")));
-    root = tempname();
-    ns = fullfile(root, "+mtools");
-    mkdir(ns);
-    remove_dir = onCleanup(@() rmdir(root, "s"));
-    copyfile(fullfile(repo, "prettyplot.m"), ns);
-    copyfile(fullfile(repo, "@dict"), fullfile(ns, "@dict"));
-
-    old_path = path();
-    restore_path = onCleanup(@() path(old_path));
-    rmpath(repo);
-    addpath(root);
-
-    f = new_figure();
-    close_fig = onCleanup(@() delete(f));
-    ax = axes(f);
-    config = mtools.dict("FontSize", 11);
-    mtools.prettyplot(f, config = config);
-    result = sprintf("%g", ax.FontSize) + " " + class(config);
-
-    clear close_fig restore_path remove_dir
 end

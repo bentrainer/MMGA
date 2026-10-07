@@ -18,8 +18,6 @@ sb.len                          % 19
 sb.len = 8;                     % truncates the text to squares:
 ```
 
-In TMI's namespace layout, call it as `mtools.StringBuilder`.
-
 ## Calls
 
 ```matlab
