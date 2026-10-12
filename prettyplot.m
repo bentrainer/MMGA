@@ -508,7 +508,9 @@ end
 function apply_background(figs)
     for f = figs
         % a dark theme keeps light text, which vanishes on white
-        if isprop(f, "Theme") && isobject(f.Theme) && isprop(f.Theme, "BaseColorStyle") ...
+        % older releases expose Theme as an empty graphics placeholder
+        if isprop(f, "Theme") && isscalar(f.Theme) && isobject(f.Theme) ...
+            && isprop(f.Theme, "BaseColorStyle") ...
             && f.Theme.BaseColorStyle == "dark"
             f.Theme = "light";
         end

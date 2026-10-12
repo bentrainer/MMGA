@@ -11,6 +11,7 @@ function pass = test_prettyplot(verbose)
 
     % the default look: labels and titles keep MATLAB's 1.1x multipliers
     [f, ax] = new_axes();
+    f.Color = [0.1 0.2 0.3];
     plot(ax, linspace(0, 10, 50), sin(linspace(0, 10, 50)));
     xlabel(ax, "x");
     title(ax, "t");
@@ -37,6 +38,21 @@ function pass = test_prettyplot(verbose)
     ax.FontSize = 30;
     drawnow();
     cases(end + 1, :) = {"labels follow ticks after a font change", follows_ticks(ax), "true"};
+
+    % opting out keeps the caller's background and any dark theme
+    f = new_figure();
+    f.Color = [0.1 0.2 0.3];
+    prettyplot(f, white_background = false);
+    cases(end + 1, :) = {"background opt-out", string(mat2str(f.Color)), "[0.1 0.2 0.3]"};
+
+    if ~isMATLABReleaseOlderThan("R2025a")
+        f.Theme = "dark";
+        prettyplot(f, white_background = false);
+        cases(end + 1, :) = {"theme opt-out", string(f.Theme.BaseColorStyle), "dark"};
+        prettyplot(f);
+        cases(end + 1, :) = {"dark theme becomes light on white", ...
+            string(f.Theme.BaseColorStyle) + " " + mat2str(f.Color), "light [1 1 1]"};
+    end
 
     [f, ax] = new_axes();
     semilogx(ax, logspace(-2, 3, 20), linspace(0, 3e4, 20));

@@ -45,6 +45,11 @@ prettyplot(config, "Key", value, ..., name = value)
 | `size_unit` | `"in"` | `"in"`, `"cm"`, or `"pt"` |
 | `debug` | `false` | Print every property set and the elapsed time |
 
+`white_background` sets each owning figure's `Color` to white and changes a
+supported dark theme to light. When MATLAB exposes no usable theme, it sets
+only `Color`. `white_background = false` skips this step; explicit style rules
+still apply.
+
 `size` resizes each figure that holds a target, even when the target is an
 axes. It also sets the paper size, so `print` and `saveas` match the screen
 size. A docked figure, or one larger than the screen, may not take the size;
